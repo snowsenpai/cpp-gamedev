@@ -1,1 +1,1 @@
-# COMP4300
+# Game Programming with C++ and SFML

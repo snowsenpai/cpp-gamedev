@@ -1,4 +1,5 @@
 #include <SFML/Graphics.hpp>
+#include <iostream>
 
 int main(int argc, char * argv[])
 {
@@ -50,6 +51,22 @@ int main(int argc, char * argv[])
 	sf::CircleShape square(30.f, 4);
 	square.setFillColor(sf::Color(134, 200, 80));
 	square.setPosition(sf::Vector2f(50.f, 10.f));
+	square.move(30.f, 20.f);
+	sf::Vector2f squarePos = square.getPosition();
+	square.setRotation(30.f);
+	square.rotate(15.f);
+	float rotation = square.getRotation();
+	square.setScale(2.f, 2.f);
+	square.scale(1.5f, 1.5f);
+	sf::Vector2f squareScale = square.getScale();
+	square.setOrigin(10.f, 20.f);
+	sf::Vector2f squareOrigin = square.getOrigin();
+	sf::FloatRect squareBoundingBox = square.getGlobalBounds();
+
+	if (squareBoundingBox.intersects(hello.getGlobalBounds()))
+		std::cout << "squre is touching hello text" << std::endl;
+	else
+		std::cout << "squre is not touching hello text" << std::endl;
 
 	sf::CircleShape octagon(30.f, 8);
 	octagon.setFillColor(sf::Color(250, 200, 150));

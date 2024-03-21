@@ -3,6 +3,7 @@
 #include <iostream>
 #include <memory>
 #include <string>
+#include <fstream>
 
 struct shape_directions
 {
@@ -34,16 +35,22 @@ static std::shared_ptr<sf::Shape> polygonFactory(float posX, float posY, unsigne
 	return polygon;
 }
 
+struct FontProp
+{
+	sf::Font font;
+	int r, g, b, charSize;
+};
+
 class Shape2D
 {
 public:
 	std::shared_ptr<sf::Shape> shape;
-	sf::Text shapeName;
+	sf::Text shapeText;
+	std::string shapeName;
+	static FontProp s_fontProp;
 	sf::Vector2f velocity;
 	shape_directions directions = {0,0,0,0};
-	// created circle should have its radius
-	// created rectangle should have its size of w and h
-	Shape2D(std::shared_ptr<sf::Shape> shape, sf::Vector2f velocity, sf::Text shapeName)
+	Shape2D(std::shared_ptr<sf::Shape> shape, sf::Vector2f velocity, std::string shapeName)
 		: shape(shape)
 		, velocity(velocity)
 		, shapeName(shapeName)
@@ -51,14 +58,30 @@ public:
 
 	void setDirections()
 	{
-		this->directions.left = -this->velocity.x;
-		this->directions.right = this->velocity.x;
-		this->directions.up = -this->velocity.y;
-		this->directions.down = this->velocity.y;
+		if (this->velocity.x >= 0)
+		{
+			this->directions.right = this->velocity.x;
+			this->directions.left = this->velocity.x * -1.f;
+		}
+		else
+		{
+			this->directions.right = this->velocity.x * -1.f;
+			this->directions.left = this->velocity.x;
+		}
+		if (this->velocity.y >= 0)
+		{
+			this->directions.up = this->velocity.y * -1.f;
+			this->directions.down = this->velocity.y;
+		}
+		else
+		{
+			this->directions.up = this->velocity.y;
+			this->directions.down = this->velocity.y * -1.f;
+		}
 	}
-	void bounce(unsigned int maxWidth, unsigned int maxHeight) 
+	void bounce(sf::RenderWindow& window)
 	{
-		if ((this->shape->getPosition().x + this->shape->getGlobalBounds().width) >= maxWidth)
+		if ((this->shape->getPosition().x + this->shape->getGlobalBounds().width) >= window.getSize().x)
 		{
 			this->velocity.x = this->directions.left;
 		}
@@ -66,7 +89,7 @@ public:
 		{
 			this->velocity.x = this->directions.right;
 		}
-		else if ((this->shape->getPosition().y + this->shape->getGlobalBounds().height) >= maxHeight)
+		else if ((this->shape->getPosition().y + this->shape->getGlobalBounds().height) >= window.getSize().y)
 		{
 			this->velocity.y = this->directions.up;
 		}
@@ -82,17 +105,27 @@ public:
 
 		this->shape->move(distanceX, distanceY);
 	}
+	void freeze() {}
+	void setText()
+	{
+		this->shapeText.setFont(Shape2D::s_fontProp.font);
+		this->shapeText.setString(this->shapeName);
+		this->shapeText.setCharacterSize(Shape2D::s_fontProp.charSize);
+		this->shapeText.setFillColor(sf::Color(Shape2D::s_fontProp.r, Shape2D::s_fontProp.g, Shape2D::s_fontProp.b));
+	}
 	void alignText()
 	{
 		sf::FloatRect shapeBounds(this->shape->getGlobalBounds());
-		sf::FloatRect textBounds(this->shapeName.getGlobalBounds());
+		sf::FloatRect textBounds(this->shapeText.getGlobalBounds());
 
 		float sizeDiffWidth = (shapeBounds.width - textBounds.width) / 2.f;
 		float sizeDiffHeight = (shapeBounds.height - textBounds.height) / 2.f;
 
-		this->shapeName.setPosition(this->shape->getPosition().x + sizeDiffWidth, this->shape->getPosition().y + sizeDiffHeight);
+		this->shapeText.setPosition(this->shape->getPosition().x + sizeDiffWidth, this->shape->getPosition().y + sizeDiffHeight);
 	}
 };
+
+FontProp Shape2D::s_fontProp = { sf::Font(), 0,0,0,0 };
 
 class BouncingShapes
 {
@@ -100,7 +133,7 @@ public:
 	std::vector<Shape2D> shapes;
 	BouncingShapes() {}
 
-	void addShape(const Shape2D shapeObj)
+	void addShape(const Shape2D& shapeObj)
 	{
 		shapes.push_back(shapeObj);
 	}
@@ -111,11 +144,11 @@ public:
 			shapeObj.setDirections();
 		}
 	}
-	void bounce(unsigned int maxWidth, unsigned int maxHeight)
+	void bounce(sf::RenderWindow& window)
 	{
 		for (Shape2D& shapeObj : shapes)
 		{
-			shapeObj.bounce(maxWidth, maxHeight);
+			shapeObj.bounce(window);
 		}
 	}
 	void move(float delta)
@@ -126,6 +159,13 @@ public:
 		}
 	}
 	void freeze() {}
+	void setText()
+	{
+		for (Shape2D& shapeObj: shapes)
+		{
+			shapeObj.setText();
+		}
+	}
 	void alignText()
 	{
 		for (Shape2D& shapeObj : shapes)
@@ -138,67 +178,101 @@ public:
 		for (Shape2D& shapeObj : shapes)
 		{
 			window.draw(*shapeObj.shape);
-			window.draw(shapeObj.shapeName);
+			window.draw(shapeObj.shapeText);
 		}
 	}
 };
 
-static sf::Font loadFont(std::string fontFile)
+struct Config
 {
-	// if load fails font will be empty
-	sf::Font font;
-	if (!font.loadFromFile(fontFile)) return font;
-	return font;
-}
+	int error = 0;
+	int windowW = 100;
+	int windowH = 100;
+	BouncingShapes bouncingShapes;
+};
 
-static sf::Text createText(sf::Font& font, std::string textString, unsigned int characterSize, const sf::Color& color)
+static Config loadConfigFile(std::string filePath)
 {
-	sf::Text text;
-	text.setFont(font);
-	text.setString(textString);
-	text.setCharacterSize(characterSize);
-	text.setFillColor(color);
-	text.setStyle(sf::Text::Bold | sf::Text::Underlined);
-	return text;
+	std::ifstream configFile(filePath);
+
+	std::string configType;
+	std::string name, fontPath;
+	float posX, posY, velX, velY, radius, rectX, rectY;
+	int windowWidth, windowHeight, fontSize, r, g, b, sides;
+
+	BouncingShapes bShapes;
+
+	Config config;
+
+	if (!configFile.is_open())
+	{
+		std::cout << "failed to open configuration file " << filePath << std::endl;
+		config.error = 2;
+		return config;
+	}
+	
+	while (configFile >> configType)
+	{
+		if (configType == "Window")
+		{
+			configFile >> windowWidth >> windowHeight;
+			config.windowW = windowWidth;
+			config.windowH = windowHeight;
+		}
+		else if (configType == "Font")
+		{
+			configFile >> fontPath >> fontSize >> r >> g >> b;
+			sf::Font textFont;
+			if (!textFont.loadFromFile(fontPath))
+			{
+				std::cout << "failed to load font " << fontPath << std::endl;
+				config.error = 1;
+				return config;
+			}
+			Shape2D::s_fontProp.font = textFont;
+			Shape2D::s_fontProp.charSize = fontSize;
+			Shape2D::s_fontProp.r = r;
+			Shape2D::s_fontProp.g = g;
+			Shape2D::s_fontProp.b = b;
+		}
+		else if (configType == "Circle")
+		{
+			configFile >> name >> posX >> posY >> velX >> velY >> r >> g >> b >> radius;
+			std::shared_ptr<sf::Shape> circle = circleFactory(posX, posY, r, g, b, radius);
+			Shape2D circleShape(circle, sf::Vector2f(velX, velY), name);
+			bShapes.addShape(circleShape);
+		}
+		else if (configType == "Rectangle")
+		{
+			configFile >> name >> posX >> posY >> velX >> velY >> r >> g >> b >> rectX >> rectY;
+			std::shared_ptr<sf::Shape> rectangle = rectangleFactory(posX, posY, r, g, b, rectX, rectY);
+			Shape2D rectangleShape(rectangle, sf::Vector2f(velX, velY), name);
+			bShapes.addShape(rectangleShape);
+		}
+		else if (configType == "Polygon")
+		{
+			configFile >> name >> posX >> posY >> velX >> velY >> r >> g >> b >> radius >> sides;
+			std::shared_ptr<sf::Shape> polygon = polygonFactory(posX, posY, r, g, b, radius, sides);
+			Shape2D polygonShape(polygon, sf::Vector2f(velX, velY), name);
+			bShapes.addShape(polygonShape);
+		}
+	}
+	config.bouncingShapes = bShapes;
+	return config;
 }
 
 int main(int argc, char * argv[])
 {
-	// load and read config file
-	unsigned int windowWidth = 720;
-	unsigned int windowHeight = 480;
-	sf::RenderWindow window(sf::VideoMode(windowWidth, windowHeight), "SFML Basics!");
+	Config config = loadConfigFile("config.txt");
+	if (config.error) return config.error;
+
+	sf::RenderWindow window(sf::VideoMode(config.windowW, config.windowH), "SFML Basics!");
 	window.setFramerateLimit(60);
 	window.setKeyRepeatEnabled(false);
 	const float MAX_VOL = 100.f;
 	const float MIN_VOL = 0.f;
 	
-	BouncingShapes bouncingShapes;
-
-	sf::Font textFont = loadFont("assets/fonts/Xolonium-Regular.ttf");
-	sf::Color textColor(255, 255, 255);
-	unsigned int characterSize = 17;
-
-	std::shared_ptr<sf::Shape> poly2 = polygonFactory(400.f, 180.f, 250, 0, 0, 70.f, 7);
-	sf::Text polyText = createText(textFont, "poly text", characterSize, textColor);
-	Shape2D polyShape(poly2, sf::Vector2f(100.f, 200.f), polyText);
-
-	std::shared_ptr<sf::Shape> circ = circleFactory(200.f, 100.f, 0, 250, 0, 50.f);
-	sf::Text circText = createText(textFont, "circ text", characterSize, textColor);
-	Shape2D circShape(circ, sf::Vector2f(100.f, 150.f), circText);
-
-	std::shared_ptr<sf::Shape> recta = rectangleFactory(100.f, 90.f, 0, 0, 250, 100.f, 50.f);
-	sf::Text rectaText = createText(textFont, "recta text", characterSize, textColor);
-	Shape2D rectaShape(recta, sf::Vector2f(200.f, 100.f), rectaText);
-
-	std::shared_ptr<sf::Shape> polyg = polygonFactory(400.f, 200.f, 50, 150, 200, 60.f, 6);
-	sf::Text polygText = createText(textFont, "polyg text", characterSize, textColor);
-	Shape2D polygShape(polyg, sf::Vector2f(200.f, 200.f), polygText);
-
-	bouncingShapes.addShape(polyShape);
-	bouncingShapes.addShape(circShape);
-	bouncingShapes.addShape(rectaShape);
-	bouncingShapes.addShape(polygShape);
+	BouncingShapes bouncingShapes = config.bouncingShapes;
 
 	sf::SoundBuffer gameoverBuffer;
 	if (!gameoverBuffer.loadFromFile("assets/audio/gameover.wav"))
@@ -215,9 +289,12 @@ int main(int argc, char * argv[])
 	forestLoop.play();
 	float forestLoopVol = forestLoop.getVolume();
 	//prevent vol increase and decrease if getVolume is at 100 and 0 respectively
+	//zero anad max bound checks i.e use <= and >= instead
 	bool changeVol = forestLoopVol > MIN_VOL && forestLoopVol < MAX_VOL;
 
 	bouncingShapes.setDirections();
+	bouncingShapes.setText();
+
 	sf::Clock clock;
 	while (window.isOpen())
 	{
@@ -262,7 +339,7 @@ int main(int argc, char * argv[])
 		default:
 			break;
 		}
-		bouncingShapes.bounce(windowWidth, windowHeight);
+		bouncingShapes.bounce(window);
 		
 		float delta = clock.restart().asSeconds();
 	

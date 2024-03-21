@@ -1,0 +1,8 @@
+Window 800 600
+Font assets/fonts/Xolonium-Regular.ttf 18 255 255 255
+Circle CGreen 100 100 100.0 -100.0 0 255 0 50
+Circle CBlue 200 200 200.0 100.0 0 0 255 100
+Rectangle RRed 200 200 350.0 -300.0 255 0 0 50 25
+Rectangle RGrey 300 250 200.0 200.0 100 100 100 50 100
+Polygon PPurple 300 300 150.0 -100.0 255 0 255 75 6
+Polygon PTeal 25 400 100.0 100.0 0 255 255 100 5

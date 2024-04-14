@@ -5,6 +5,8 @@ VisualStudioVersion = 17.7.34221.43
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Basics", "Basics\Basics.vcxproj", "{4BEF292E-E070-4D13-8A89-399F1C41B711}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Geom", "Geom\Geom.vcxproj", "{3FCDCB07-77D6-4B95-BDFF-F394600CF1BD}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -21,6 +23,14 @@ Global
 		{4BEF292E-E070-4D13-8A89-399F1C41B711}.Release|x64.Build.0 = Release|x64
 		{4BEF292E-E070-4D13-8A89-399F1C41B711}.Release|x86.ActiveCfg = Release|Win32
 		{4BEF292E-E070-4D13-8A89-399F1C41B711}.Release|x86.Build.0 = Release|Win32
+		{3FCDCB07-77D6-4B95-BDFF-F394600CF1BD}.Debug|x64.ActiveCfg = Debug|x64
+		{3FCDCB07-77D6-4B95-BDFF-F394600CF1BD}.Debug|x64.Build.0 = Debug|x64
+		{3FCDCB07-77D6-4B95-BDFF-F394600CF1BD}.Debug|x86.ActiveCfg = Debug|Win32
+		{3FCDCB07-77D6-4B95-BDFF-F394600CF1BD}.Debug|x86.Build.0 = Debug|Win32
+		{3FCDCB07-77D6-4B95-BDFF-F394600CF1BD}.Release|x64.ActiveCfg = Release|x64
+		{3FCDCB07-77D6-4B95-BDFF-F394600CF1BD}.Release|x64.Build.0 = Release|x64
+		{3FCDCB07-77D6-4B95-BDFF-F394600CF1BD}.Release|x86.ActiveCfg = Release|Win32
+		{3FCDCB07-77D6-4B95-BDFF-F394600CF1BD}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

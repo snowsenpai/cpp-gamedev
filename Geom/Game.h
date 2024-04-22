@@ -17,12 +17,12 @@ class Game
 	sf::Text m_text;
 	
 	PlayerConfig m_playerConfig;
-	EnemyConfig	m_enemyConfig;
+	EnemyConfig m_enemyConfig;
 	BulletConfig m_bulletConfig;
 	
-	int	m_score = 0;
-	int	m_currentFrame = 0;
-	int	m_lastEnemySpawnTime = 0;
+	int m_score = 0;
+	int m_currentFrame = 0;
+	int m_lastEnemySpawnTime = 0;
 	
 	bool m_paused = false;
 	bool m_running = true;

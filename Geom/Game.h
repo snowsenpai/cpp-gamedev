@@ -4,9 +4,11 @@
 #include "EntityManager.h"
 #include <SFML/Graphics.hpp>
 
-struct PlayerConfig { int SR, CR, FR, FG, OR, OG, OB, OT, V; float S; };
-struct EnemyConfig { int SR, CR, OR, OG, OB, OI, VMIN, VMAX, L, SI; float SMIN, SMAX; };
-struct BulletConfig { int SR, CR, FR, FG, FB, OR, OG, OB, OT, V, L; float S; };
+struct WindowConfig { int W, H, FL, FS; };
+struct FontConfig { std::string F = "default"; int S = 0, R = 0, G = 0, B = 0; };
+struct PlayerConfig { int FR, FG, FB, OR, OG, OB, V; float SR, CR, OT, S; };
+struct EnemyConfig { int OR, OG, OB, VMIN, VMAX, L, SI; float SR, CR, OT, SMIN, SMAX; };
+struct BulletConfig { int FR, FG, FB, OR, OG, OB, V, L; float SR, CR, OT, S; };
 
 class Game
 {
@@ -16,6 +18,7 @@ class Game
 	sf::Font m_font;
 	sf::Text m_text;
 	
+	FontConfig m_fontConfig;
 	PlayerConfig m_playerConfig;
 	EnemyConfig m_enemyConfig;
 	BulletConfig m_bulletConfig;

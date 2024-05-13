@@ -48,11 +48,11 @@ public:
 class CLifeSpan
 {
 public:
-	// amount of life span remaining in the entity
+	// amount of life remaining in the entity
 	int remaining = 0;
-	// the total initial amount of lifespan
+	// the total initial amount of life
 	int total = 0;
-	ClifeSspan(int total)
+	CLifeSpan(int total)
 		: remaining(total), total(total) {}
 };
 

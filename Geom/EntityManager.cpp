@@ -7,15 +7,25 @@ EntityManager::EntityManager() {}
 // called at the beginning of each frame
 void EntityManager::update()
 {
-	// TODO add entites from m_entitiesToAdd into m_entities and m_entityMap
-	// TODO remove dead entities from m_entities and m_entityMap
-	// clear m_entitiesToAdd
+	for (auto& e : m_entitiesToAdd)
+	{
+		m_entities.push_back(e);
+		m_entityMap[e->tag()].push_back(e);
+	}
+	m_entitiesToAdd.clear();
+
+	removeDeadEntities(m_entities);
+
+	for (auto& [tag, entityVec] : m_entityMap)
+	{
+		removeDeadEntities(entityVec);
+	}
 }
 
 void EntityManager::removeDeadEntities(EntityVec& vec) 
 {
-	// TODO remove all dead entities from the input vector that is called by the update function
-	// handle iterator invalidation, try out std::remove_if
+	EntityVec::iterator newEnd = std::remove_if(vec.begin(), vec.end(), [](const std::shared_ptr<Entity>& e) { return !e->isActive(); });
+	vec.erase(newEnd, vec.end());
 }
 
 std::shared_ptr<Entity> EntityManager::addEntity(const std::string& tag)

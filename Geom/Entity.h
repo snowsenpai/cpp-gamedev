@@ -12,6 +12,7 @@ class Entity
 	bool m_active = true;
 	std::string m_tag = "default";
 
+	Entity();
 	Entity(const size_t id, const std::string& tag);
 
 public:

@@ -1,4 +1,5 @@
 #include "Vec2.h"
+#include <cmath>
 
 Vec2::Vec2() {}
 
@@ -58,8 +59,22 @@ void Vec2::operator /= (const float val)
 	y /= val;
 }
 
-float Vec2::dist(const Vec2& rhs) const
+float Vec2::dist(const Vec2& dest) const
 {
-	// TODO calc distance between origin(this *) and destination (rhs)
-	return 1.f;
+	// difference vector
+	Vec2 d = dest - *this;
+	// speed?
+	float dist = std::sqrt(d.x * d.x + d.y * d.y);
+
+	return dist;
+}
+
+float Vec2::angle() const
+{
+	return std::atan2(y, x);
+}
+
+Vec2 Vec2::velocity(float speed, float angle)
+{
+	return Vec2(speed * std::cos(angle), speed * std::sin(angle));
 }

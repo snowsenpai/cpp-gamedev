@@ -26,12 +26,13 @@ void Game::init(const std::string& config)
 
 			if (windowConfig.FS)
 			{
-				// full screen
+				// fix? full screen with title bar, can be maximized
 				sf::VideoMode desktop = sf::VideoMode().getDesktopMode();
 				m_window.create(desktop, "Geom", sf::Style::Default);
 			}
 			else
 			{
+				// fix: when maximized display boarders are outside desktop and shapes appear streached
 				m_window.create(sf::VideoMode(windowConfig.W, windowConfig.H), "Geom");
 			}
 
@@ -72,6 +73,7 @@ void Game::run()
 			sMovement();
 			sEnemySpawner();
 			sCollision();
+			sLifeSpan();
 		}
 		sRender();
 
@@ -109,10 +111,26 @@ void Game::spawnEnemy()
 	m_lastEnemySpawnTime = m_currentFrame;
 }
 
-// spawns a bullet from a given entity to a target location
+// spawns a bullet from a given entity(origin) to a target location
 void Game::spawnBullet(std::shared_ptr<Entity> entity, const Vec2& target)
 {
-	// TODO
+	auto bullet = m_entities.addEntity("bullet");
+	
+	bullet->cLifeSpan = std::make_shared<CLifeSpan>(m_bulletConfig.L);
+	
+	bullet->cCollision = std::make_shared<CCollision>(m_bulletConfig.CR);
+
+	bullet->cShape = std::make_shared<CShape>(m_bulletConfig.SR, m_bulletConfig.V, sf::Color(m_bulletConfig.FR, m_bulletConfig.FB, m_bulletConfig.FB), sf::Color(m_bulletConfig.OR, m_bulletConfig.OG, m_bulletConfig.OB), m_bulletConfig.OT);
+
+	Vec2 diffVec = target - entity->cTransform->pos; // if reverse angle will be wrong
+
+	float angle = diffVec.angle();
+
+	Vec2 bulletVel = Vec2::velocity(m_bulletConfig.S, angle);
+	
+	float entityRadius = entity->cShape->circle.getRadius();
+	
+	bullet->cTransform = std::make_shared<CTransform>(entity->cTransform->pos, bulletVel, 0.0f);
 }
 
 // spawns the small enemies when a big one (input Entity* e) explodes
@@ -197,6 +215,19 @@ void Game::sUserInput()
 		}
 
 		// mouse events
+		if (event.type == sf::Event::MouseButtonPressed)
+		{
+			if (event.mouseButton.button == sf::Mouse::Left)
+			{
+				spawnBullet(m_player, Vec2((float)event.mouseButton.x, (float)event.mouseButton.y));
+			}
+
+			if (event.mouseButton.button == sf::Mouse::Right)
+			{
+				std::cout << "mouse right button was pressed" << "\n";
+				// spawnSpecialWeapon()
+			}
+		}
 	}
 }
 
@@ -205,9 +236,9 @@ void Game::sMovement()
 	// player movement
 	
 	// reset velocity on each frame
-	m_player->cTransform->velocity = { 0, 0 };
+	m_player->cTransform->velocity = { 0.0f, 0.0f };
 
-	float speed = 8.f;
+	float speed = 8.0f;
 	if (m_player->cInput->up)
 	{
 		m_player->cTransform->velocity.y = -speed;
@@ -228,7 +259,13 @@ void Game::sMovement()
 	m_player->cTransform->pos.x += m_player->cTransform->velocity.x;
 	m_player->cTransform->pos.y += m_player->cTransform->velocity.y;
 	
-	// TODO enemy and bullet movement
+	// bullets
+	for (const auto& bullet : m_entities.getEntities("bullet"))
+	{
+		bullet->cTransform->pos.x += bullet->cTransform->velocity.x;
+		bullet->cTransform->pos.y += bullet->cTransform->velocity.y;
+	}
+	// TODO enemy movement
 }
 
 void Game::sEnemySpawner()
@@ -247,7 +284,7 @@ void Game::sCollision()
 	float playerCR = m_player->cCollision->radius;
 
 	// prevents player rendering from choking
-	float tOffset = .05f;
+	float tOffset = 0.05f;
 
 	// player x window collision
 	if (playerPosX + playerCR >= windowWidth) // right
@@ -263,11 +300,11 @@ void Game::sCollision()
 		m_player->cTransform->pos.y = m_player->cShape->circle.getRadius() + tOffset;
 	}
 	// when game starts player pos{x, y} might be 0,0 (default)
-	else if (playerPosX && playerPosX - playerCR <= 0) // left
+	else if (playerPosX && playerPosX - playerCR <= 0.0f) // left
 	{
 		m_player->cTransform->pos.x = windowWidth - m_player->cShape->circle.getRadius() - tOffset;
 	}
-	else if (playerPosY && playerPosY - playerCR <= 0) // top
+	else if (playerPosY && playerPosY - playerCR <= 0.0f) // top
 	{
 		m_player->cTransform->pos.y = windowHeight - m_player->cShape->circle.getRadius() - tOffset;
 	}
@@ -276,5 +313,20 @@ void Game::sCollision()
 
 void Game::sLifeSpan()
 {
-	// TODO
+	// TODP for all entities
+	// if no lifespan component, skip (continue)
+	// if remaining lifespan > 0 , --1
+	// if lifespan and is alive, reduce shape alpha
+	// if lifespan and remaining = 0, destroy
+	
+	for (const auto& bullet : m_entities.getEntities("bullet"))
+	{
+		int fade = --bullet->cLifeSpan->remaining;
+		
+		bullet->cShape->circle.setFillColor(sf::Color(m_bulletConfig.FR, m_bulletConfig.FB, m_bulletConfig.FB, fade));
+		
+		bullet->cShape->circle.setOutlineColor(sf::Color(m_bulletConfig.OR, m_bulletConfig.OB, m_bulletConfig.OB, fade));
+
+		if (0 == fade) bullet->destroy();
+	}
 }

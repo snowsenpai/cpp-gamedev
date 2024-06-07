@@ -123,7 +123,9 @@ void Game::spawnSmallEnemies(std::shared_ptr<Entity> entity)
 
 void Game::spawnSpecialWeapon(std::shared_ptr<Entity> entity)
 {
-	// TODO last
+	// TODO
+	// options:
+	// ricochet bullet off n enemies
 }
 
 void Game::sRender()
@@ -150,6 +152,7 @@ void Game::sUserInput()
 		{
 			m_running = false;
 		}
+		// if key pressed is esc m_running false
 
 		if (event.type == sf::Event::KeyPressed)
 		{
@@ -200,26 +203,27 @@ void Game::sUserInput()
 void Game::sMovement()
 {
 	// player movement
+	
 	// reset velocity on each frame
 	m_player->cTransform->velocity = { 0, 0 };
 
+	float speed = 8.f;
 	if (m_player->cInput->up)
 	{
-		m_player->cTransform->velocity.y = -5.f;
+		m_player->cTransform->velocity.y = -speed;
 	}
 	else if (m_player->cInput->down)
 	{
-		m_player->cTransform->velocity.y = 5.f;
+		m_player->cTransform->velocity.y = speed;
 	}
 	else if (m_player->cInput->left)
 	{
-		m_player->cTransform->velocity.x = -5.f;
+		m_player->cTransform->velocity.x = -speed;
 	}
 	else if (m_player->cInput->right)
 	{
-		m_player->cTransform->velocity.x = 5.f;
+		m_player->cTransform->velocity.x = speed;
 	}
-	// TODO? smooth diagonal movement when 2 perpendicular directions are true
 
 	m_player->cTransform->pos.x += m_player->cTransform->velocity.x;
 	m_player->cTransform->pos.y += m_player->cTransform->velocity.y;
@@ -234,7 +238,40 @@ void Game::sEnemySpawner()
 
 void Game::sCollision()
 {
-	// TODO
+	unsigned int windowWidth = m_window.getSize().x;
+	unsigned int windowHeight = m_window.getSize().y;
+
+	float playerPosX = m_player->cShape->circle.getPosition().x;
+	float playerPosY = m_player->cShape->circle.getPosition().y;
+
+	float playerCR = m_player->cCollision->radius;
+
+	// prevents player rendering from choking
+	float tOffset = .05f;
+
+	// player x window collision
+	if (playerPosX + playerCR >= windowWidth) // right
+	{
+		// to restrict player movement, set a windowColl.right to true and check in sMovement along with player.right
+		//m_player->cInput->right = false; will be over written by sUserInput in the next frame
+		
+		// teleport
+		m_player->cTransform->pos.x = m_player->cShape->circle.getRadius() + tOffset;
+	}
+	else if (playerPosY + playerCR >= windowHeight) // bottom
+	{
+		m_player->cTransform->pos.y = m_player->cShape->circle.getRadius() + tOffset;
+	}
+	// when game starts player pos{x, y} might be 0,0 (default)
+	else if (playerPosX && playerPosX - playerCR <= 0) // left
+	{
+		m_player->cTransform->pos.x = windowWidth - m_player->cShape->circle.getRadius() - tOffset;
+	}
+	else if (playerPosY && playerPosY - playerCR <= 0) // top
+	{
+		m_player->cTransform->pos.y = windowHeight - m_player->cShape->circle.getRadius() - tOffset;
+	}
+	// TODO, bullet x enemy, player x enemy collisions, 
 }
 
 void Game::sLifeSpan()

@@ -48,4 +48,13 @@
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
+  <ItemGroup>
+    <Text Include="config.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="README.md" />
+  </ItemGroup>
+  <ItemGroup>
+    <Font Include="assets\fonts\Xolonium-Regular.ttf" />
+  </ItemGroup>
 </Project>

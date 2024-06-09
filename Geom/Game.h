@@ -7,7 +7,7 @@
 struct WindowConfig { int W, H, FL, FS; };
 struct FontConfig { std::string F = "default"; int S = 0, R = 0, G = 0, B = 0; };
 struct PlayerConfig { int FR, FG, FB, OR, OG, OB, V; float SR, CR, OT, S; };
-struct EnemyConfig { int OR, OG, OB, VMIN, VMAX, L, SI; float SR, CR, OT, SMIN, SMAX; };
+struct EnemyConfig { int OR, OG, OB, VMIN, VMAX, L, SP; float SR, CR, OT, SMIN, SMAX; };
 struct BulletConfig { int FR, FG, FB, OR, OG, OB, V, L; float SR, CR, OT, S; };
 
 class Game
@@ -35,17 +35,21 @@ class Game
 	void init(const std::string& config);
 	void setPaused(bool paused);
 
+	template <typename T>
+	T rng(T min, T max);
+
 	void sRender();
 	void sUserInput();
 	void sMovement();
 	void sEnemySpawner();
 	void sCollision();
 	void sLifeSpan();
+	void sScore();
 
 	void spawnPlayer();
 	void spawnEnemy();
-	void spawnSmallEnemies(std::shared_ptr<Entity> entity);
-	void spawnBullet(std::shared_ptr<Entity> entity, const Vec2& mousePos);
+	void spawnSmallEnemies(const std::shared_ptr<Entity>& entity);
+	void spawnBullet(const std::shared_ptr<Entity>& entity, const Vec2& mousePos);
 	void spawnSpecialWeapon(std::shared_ptr<Entity> entity);
 
 public:

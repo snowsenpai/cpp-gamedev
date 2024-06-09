@@ -24,7 +24,7 @@ Player SR CR S FR FG FB OR OG OB OT V
 
 Enemy SR CR SMIN SMAX OR OG OB OT VMIN VMAX L SI
 	Shape Radius		SR			float
-	Collision Radius	SR			float
+	Collision Radius	CR			float
 	Min / Max Speed		SMIN, SMAX	float, float
 	Outline Color		OR, OG, OB	int, int, int
 	Outline Thickness	OT			float

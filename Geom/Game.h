@@ -50,10 +50,10 @@ class Game
 	void spawnEnemy();
 	void spawnSmallEnemies(const std::shared_ptr<Entity>& entity);
 	void spawnBullet(const std::shared_ptr<Entity>& entity, const Vec2& mousePos);
-	void spawnSpecialWeapon(std::shared_ptr<Entity> entity);
+	void spawnSpecialWeapon(const std::shared_ptr<Entity>& entity, const Vec2& target);
 
 public:
-	Game(const std::string& cofig);
+	Game(const std::string& config);
 
 	void run();
 };

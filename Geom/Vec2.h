@@ -26,7 +26,7 @@ public:
 	float dist(const Vec2& dest) const;
 
 	// calculates the angle of this* using its x,y components
-	// this* must be a difference vector between two positions (Vec2 dest - Vec2 origin)
+	// this* must be a difference vector(distance) between two position vector (Vec2 destination - Vec2 origin)
 	// returns angle in degrees
 	float angle() const;
 

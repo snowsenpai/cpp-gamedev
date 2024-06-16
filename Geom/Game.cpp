@@ -29,13 +29,13 @@ void Game::init(const std::string& config)
 
 			if (windowConfig.FS)
 			{
-				// fix? full screen with title bar, can be maximized
+				// TODO fix: display window in "maximized" mode not default mode
+				// use sf::Style::FullScreen and have a key to restore down
 				sf::VideoMode desktop = sf::VideoMode().getDesktopMode();
 				m_window.create(desktop, "Geom", sf::Style::Default);
 			}
 			else
 			{
-				// fix: when maximized display boarders are outside desktop and shapes appear streached
 				m_window.create(sf::VideoMode(windowConfig.W, windowConfig.H), "Geom");
 			}
 
@@ -46,7 +46,10 @@ void Game::init(const std::string& config)
 			configFile >> m_fontConfig.F >> m_fontConfig.S >> m_fontConfig.R >> m_fontConfig.G >> m_fontConfig.B;
 			
 			sf::Font font;
-			font.loadFromFile(m_fontConfig.F);
+			if (!font.loadFromFile(m_fontConfig.F))
+			{
+				std::cout << "failed to load font from file path: " << m_fontConfig.F << "\n";
+			}
 			m_font = font;
 		}
 		else if (configType == "Player")
@@ -67,40 +70,37 @@ void Game::init(const std::string& config)
 
 void Game::run()
 {
-	// TODO add pause funcionality
-	// some systems should function while paused (rendering)
-	// some sysyems shouldn't (movement, input)
 	while (m_running)
 	{
 		m_entities.update();
-		
+
+		sUserInput();
 		if (!m_paused)
 		{
-			sUserInput();
 			sCollision();
 			sScore();
 			sMovement();
 			sEnemySpawner();
 			sLifeSpan();
+			m_currentFrame++;
 		}
 		sRender();
-
-		m_currentFrame++;
+		
 	}
 	m_window.close();
 }
 
 void Game::setPaused(bool paused)
 {
-	// TODO pollEvents and listen for a key press? or t = !t
+	m_paused = paused;
 }
 
 void Game::spawnPlayer()
 {
 	auto player = m_entities.addEntity("player");
 
-	float posX = (float)(m_window.getSize().x / 2);
-	float posY = (float)(m_window.getSize().y / 2);
+	float posX = static_cast<float>(m_window.getSize().x / 2);
+	float posY = static_cast<float>(m_window.getSize().y / 2);
 	
 	player->cTransform = std::make_shared<CTransform>(Vec2(posX, posY), Vec2(1.0f, 1.0f), 0.0f);
 
@@ -116,8 +116,8 @@ void Game::spawnPlayer()
 // spawn an enemy at a random position
 void Game::spawnEnemy()
 {
-	float windowX = (float)m_window.getSize().x;
-	float windowY = (float)m_window.getSize().y;
+	float windowX = static_cast<float>(m_window.getSize().x);
+	float windowY = static_cast<float>(m_window.getSize().y);
 
 	float shapeRadius = m_enemyConfig.SR;
 	float minPos = 0.0f + shapeRadius;
@@ -189,10 +189,11 @@ void Game::spawnBullet(const std::shared_ptr<Entity>& entity, const Vec2& target
 // spawns the small enemies when a big one (input Entity* e) dies
 void Game::spawnSmallEnemies(const std::shared_ptr<Entity>& entity)
 {
-	int vertices = (int) entity->cShape->circle.getPointCount();
+	int vertices = static_cast<int>(entity->cShape->circle.getPointCount());
 	int angleOffset = 360 / vertices;
 
 	float smallSR = entity->cShape->circle.getRadius() / 3.0f;
+	int smallLS = 40;
 
 	Vec2 smallPos = entity->cTransform->pos;
 
@@ -204,23 +205,32 @@ void Game::spawnSmallEnemies(const std::shared_ptr<Entity>& entity)
 
 	for (int i = 0; i < vertices; i++)
 	{
-		float angle = (float)(angleOffset * i);
+		float angle = static_cast<float>(angleOffset * i);
 		Vec2 vel = Vec2::velocity(speed, angle);
 
 		auto smallEnemy = m_entities.addEntity("smallEnemy");
 		
-		smallEnemy->cLifeSpan = std::make_shared<CLifeSpan>(m_enemyConfig.L);
+		smallEnemy->cLifeSpan = std::make_shared<CLifeSpan>(smallLS);
 		smallEnemy->cTransform = std::make_shared<CTransform>(smallPos, vel, 0.0f);
 
 		smallEnemy->cShape = std::make_shared<CShape>(smallSR, vertices, fill, outline, thickness);
 	}
 }
 
-void Game::spawnSpecialWeapon(std::shared_ptr<Entity> entity)
+void Game::spawnSpecialWeapon(const std::shared_ptr<Entity>& entity, const Vec2& target)
 {
-	// TODO
-	// options:
-	// ricochet bullet off n enemies
+	Vec2 distanceVec = target - entity->cTransform->pos;
+	float angle = distanceVec.angle();
+	Vec2 weaponVel = Vec2::velocity(22.5f, angle);
+	auto weapon = m_entities.addEntity("specialWeapon");
+	
+	weapon->cTransform = std::make_shared<CTransform>(entity->cTransform->pos, weaponVel, 0.0f);
+	weapon->cCollision = std::make_shared<CCollision>(m_bulletConfig.CR);
+	weapon->cLifeSpan = std::make_shared<CLifeSpan>(200);
+
+	sf::Color white(255, 255, 255);
+	sf::Color black(0, 0, 0);
+	weapon->cShape = std::make_shared<CShape>(m_bulletConfig.SR, m_bulletConfig.V, black, white, m_bulletConfig.OT);
 }
 
 void Game::sRender()
@@ -249,62 +259,82 @@ void Game::sUserInput()
 		{
 			m_running = false;
 		}
-		// if key pressed is esc m_running false
-
+		if (event.type == sf::Event::Resized)
+		{
+			m_window.setView(sf::View(sf::FloatRect(0.0f, 0.0f, static_cast<float>(event.size.width), static_cast<float>(event.size.height))));
+		}
 		if (event.type == sf::Event::KeyPressed)
 		{
 			switch (event.key.code)
 			{
-			case sf::Keyboard::W :
-				m_player->cInput->up = true;
+			case sf::Keyboard::P:
+				setPaused(!m_paused);
 				break;
-			case sf::Keyboard::A:
-				m_player->cInput->left = true;
-				break;
-			case sf::Keyboard::S:
-				m_player->cInput->down = true;
-				break;
-			case sf::Keyboard::D:
-				m_player->cInput->right = true;
+			case sf::Keyboard::Escape:
+				m_running = false;
 				break;
 			default:
 				break;
 			}
 		}
 
-		if (event.type == sf::Event::KeyReleased)
+		if (!m_paused)
 		{
-			switch (event.key.code)
+			if (event.type == sf::Event::KeyPressed)
 			{
-			case sf::Keyboard::W:
-				m_player->cInput->up = false;
-				break;
-			case sf::Keyboard::A:
-				m_player->cInput->left = false;
-				break;
-			case sf::Keyboard::S:
-				m_player->cInput->down = false;
-				break;
-			case sf::Keyboard::D:
-				m_player->cInput->right = false;
-				break;
-			default:
-				break;
-			}
-		}
-
-		// mouse events
-		if (event.type == sf::Event::MouseButtonPressed)
-		{
-			if (event.mouseButton.button == sf::Mouse::Left)
-			{
-				spawnBullet(m_player, Vec2((float)event.mouseButton.x, (float)event.mouseButton.y));
+				switch (event.key.code)
+				{
+				case sf::Keyboard::W:
+					m_player->cInput->up = true;
+					break;
+				case sf::Keyboard::A:
+					m_player->cInput->left = true;
+					break;
+				case sf::Keyboard::S:
+					m_player->cInput->down = true;
+					break;
+				case sf::Keyboard::D:
+					m_player->cInput->right = true;
+					break;
+				default:
+					break;
+				}
 			}
 
-			if (event.mouseButton.button == sf::Mouse::Right)
+			if (event.type == sf::Event::KeyReleased)
 			{
-				std::cout << "mouse right button was pressed" << "\n";
-				// spawnSpecialWeapon()
+				switch (event.key.code)
+				{
+				case sf::Keyboard::W:
+					m_player->cInput->up = false;
+					break;
+				case sf::Keyboard::A:
+					m_player->cInput->left = false;
+					break;
+				case sf::Keyboard::S:
+					m_player->cInput->down = false;
+					break;
+				case sf::Keyboard::D:
+					m_player->cInput->right = false;
+					break;
+				default:
+					break;
+				}
+			}
+
+			// mouse events
+			if (event.type == sf::Event::MouseButtonPressed)
+			{
+				if (event.mouseButton.button == sf::Mouse::Left)
+				{
+					spawnBullet(m_player, Vec2(static_cast<float>(event.mouseButton.x), static_cast<float>(event.mouseButton.y)));
+				}
+
+				if (event.mouseButton.button == sf::Mouse::Right)
+				{
+					// TODO limit specialWeapon usage
+					spawnSpecialWeapon(m_player, Vec2(static_cast<float>(event.mouseButton.x), static_cast<float>(event.mouseButton.y)));
+				}
 			}
 		}
 	}
@@ -343,6 +373,11 @@ void Game::sMovement()
 	{
 		bullet->cTransform->pos.x += bullet->cTransform->velocity.x;
 		bullet->cTransform->pos.y += bullet->cTransform->velocity.y;
+	}
+	for (const auto& weapon : m_entities.getEntities("specialWeapon"))
+	{
+		weapon->cTransform->pos.x += weapon->cTransform->velocity.x;
+		weapon->cTransform->pos.y += weapon->cTransform->velocity.y;
 	}
 
 	// enemies
@@ -384,7 +419,7 @@ void Game::sCollision()
 	// player x window collision
 	if (playerPosX + playerCR >= windowWidth) // right
 	{
-		// to restrict player movement, set a windowColl.right to true and check in sMovement along with player.right
+		// restrict player movement?, set a windowColl.right to true and check in sMovement along with player.right
 		//m_player->cInput->right = false; will be over written by sUserInput in the next frame
 		
 		// teleport
@@ -426,7 +461,54 @@ void Game::sCollision()
 				spawnSmallEnemies(enemy);
 			}
 		}
+	}
 
+	for (const auto& weapon : m_entities.getEntities("specialWeapon"))
+	{
+		float weaponCR = weapon->cCollision->radius;
+
+		float weaponPosX = weapon->cTransform->pos.x;
+		float weaponPosY = weapon->cTransform->pos.y;
+		
+		// speacialWeapon x window collision
+		float newVelX = weapon->cTransform->velocity.x * -1.0f;
+		float newVelY = weapon->cTransform->velocity.y * -1.0f;
+
+		if (weaponPosX + weaponCR >= windowWidth) // right collison, bounce left
+		{
+			weapon->cTransform->velocity.x = newVelX;
+		}
+		else if (weaponPosY + weaponCR >= windowHeight) // bottom collison, bounce up
+		{
+			weapon->cTransform->velocity.y = newVelY;
+		}
+		else if (weaponPosX && weaponPosX - weaponCR <= 0.0f) // left collision, bounce right
+		{
+			weapon->cTransform->velocity.x = newVelX;
+		}
+		else if (weaponPosY && weaponPosY - weaponCR <= 0.0f) // top collision, bounce down
+		{
+			weapon->cTransform->velocity.y = newVelY;
+		}
+
+		// speacialWeapon x enemy collision
+		for (const auto& enemy : m_entities.getEntities("enemy"))
+		{
+			float enemyCR = enemy->cCollision->radius;
+
+			Vec2 diffVec = weapon->cTransform->pos - enemy->cTransform->pos;
+			float distSqr = diffVec.x * diffVec.x + diffVec.y * diffVec.y;
+			
+			float radiusSum = weaponCR + enemyCR;
+			float radiusSumSqr = radiusSum * radiusSum;
+
+			if (distSqr < radiusSumSqr)
+			{
+				m_score += enemy->cScore->score;
+				enemy->destroy();
+				spawnSmallEnemies(enemy);
+			}
+		}
 	}
 
 	for (const auto& enemy : m_entities.getEntities("enemy"))
@@ -476,54 +558,49 @@ void Game::sCollision()
 
 void Game::sLifeSpan()
 {
-	// TODO for all entities
-	// if no lifespan component, skip (continue)
-	// if remaining lifespan > 0 , --1
-	// if lifespan and !isalive, reduce shape alpha
-	// if lifespan and remaining = 0, destroy
-
-	// TODO merge loops, loop through entities Vec not map
+	// looping through EntittyVec is slow, takes longer to destroy entity
+	int alphaFade = 6;
 	for (const auto& bullet : m_entities.getEntities("bullet"))
 	{
 		int fade = --bullet->cLifeSpan->remaining;
-		
 
 		sf::Color bulletFillColor = bullet->cShape->circle.getFillColor();
-		int fr = bulletFillColor.r;
-		int fg = bulletFillColor.g;
-		int fb = bulletFillColor.b;
-
 		sf::Color bulletOutlineColor = bullet->cShape->circle.getOutlineColor();
-		int oR = bulletOutlineColor.r;
-		int og = bulletOutlineColor.g;
-		int ob = bulletOutlineColor.b;
+		bulletFillColor.a -= alphaFade;
+		bulletOutlineColor.a -= alphaFade;
 
-		bullet->cShape->circle.setFillColor(sf::Color(fr, fg, fb, fade));
-
-		bullet->cShape->circle.setOutlineColor(sf::Color(oR , og, ob, fade));
+		bullet->cShape->circle.setFillColor(bulletFillColor);
+		bullet->cShape->circle.setOutlineColor(bulletOutlineColor);
 
 		if (0 == fade) bullet->destroy();
 	}
-
 	for (const auto& smallEnemy : m_entities.getEntities("smallEnemy"))
 	{
 		int fade = --smallEnemy->cLifeSpan->remaining;
-		
+
 		sf::Color enemyFillColor = smallEnemy->cShape->circle.getFillColor();
-		int fr = enemyFillColor.r;
-		int fg = enemyFillColor.g;
-		int fb = enemyFillColor.b;
-		
 		sf::Color enemyOutlineColor = smallEnemy->cShape->circle.getOutlineColor();
-		int oR = enemyOutlineColor.r;
-		int og = enemyOutlineColor.g;
-		int ob = enemyOutlineColor.b;
-		
-		smallEnemy->cShape->circle.setFillColor(sf::Color(fr, fg, fb, fade));
-		
-		smallEnemy->cShape->circle.setOutlineColor(sf::Color(oR, og, ob, fade));
+		enemyFillColor.a -= alphaFade;
+		enemyOutlineColor.a -= alphaFade;
+
+		smallEnemy->cShape->circle.setFillColor(enemyFillColor);
+		smallEnemy->cShape->circle.setOutlineColor(enemyOutlineColor);
 
 		if (0 == fade) smallEnemy->destroy();
+	}
+	for (const auto& weapon : m_entities.getEntities("specialWeapon"))
+	{
+		int fade = --weapon->cLifeSpan->remaining;
+
+		sf::Color weaponFillColor = weapon->cShape->circle.getFillColor();
+		sf::Color weaponOutlineColor = weapon->cShape->circle.getOutlineColor();
+		--weaponFillColor.a;
+		--weaponOutlineColor.a;
+
+		weapon->cShape->circle.setFillColor(weaponFillColor);
+		weapon->cShape->circle.setOutlineColor(weaponOutlineColor);
+
+		if (0 == fade) weapon->destroy();
 	}
 }
 

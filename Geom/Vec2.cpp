@@ -74,7 +74,7 @@ constexpr double pi = 3.14159265358979323846;
 float Vec2::angle() const
 {
 	float rad = std::atan2(y, x);
-	float deg = (float)(rad * 180 / pi);
+	float deg = static_cast<float>(rad * 180 / pi);
 	
 	return deg;
 }
@@ -82,5 +82,5 @@ float Vec2::angle() const
 Vec2 Vec2::velocity(float speed, float angle)
 {
 	double rad = angle * pi / 180;
-	return Vec2(speed * (float)std::cos(rad), speed * (float)std::sin(rad));
+	return Vec2(speed * static_cast<float>(std::cos(rad)), speed * static_cast<float>(std::sin(rad)));
 }

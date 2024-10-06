@@ -1,6 +1,6 @@
 #include "Entity.h"
 
-Entity::Entity() {}
+//Entity::Entity() {} // when using default constructor, Entity::Entity() wont need a body
 
 Entity::Entity(const size_t id, const std::string& tag) : m_id(id), m_tag(tag) {}
 

@@ -92,6 +92,7 @@ void Game::run()
 
 void Game::setPaused(bool paused)
 {
+	// TODO when paused display a "paused" text to the player
 	m_paused = paused;
 }
 
@@ -259,8 +260,16 @@ void Game::sUserInput()
 		{
 			m_running = false;
 		}
+		if (event.type == sf::Event::LostFocus)
+		{
+			// the event hander(thread that calls pollEvent) is still blocked when window title bar is clicked/dragged
+			// sf::Event::LostFocus is triggered for other cases but not for title bar clicks
+			setPaused(true);
+		}
 		if (event.type == sf::Event::Resized)
 		{
+			// pause game play
+			setPaused(true);
 			m_window.setView(sf::View(sf::FloatRect(0.0f, 0.0f, static_cast<float>(event.size.width), static_cast<float>(event.size.height))));
 		}
 		if (event.type == sf::Event::KeyPressed)
